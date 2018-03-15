@@ -295,11 +295,18 @@ class Wallet:
             logger.debug('Wallet.open: <!< absent wallet {}'.format(self.name))
             raise AbsentWallet('Cannot open wallet {}: not created'.format(self.name))
 
-        self._handle = await wallet.open_wallet(
-            self.name,
-            json.dumps(self.cfg) if self.cfg else None,
-            json.dumps(self.creds) if self.creds else None)
-        logger.info('Opened wallet {} on handle {}'.format(self.name, self.handle))
+        try:
+            self._handle = await wallet.open_wallet(
+                    self.name,
+                    json.dumps(self.cfg) if self.cfg else None,
+                    json.dumps(self.creds) if self.creds else None)
+            logger.info('Opened wallet {} on handle {}'.format(self.name, self.handle))
+        except IndyError as e:
+            if e.error_code == ErrorCode.WalletAlreadyOpenedError:
+                logger.info('Wallet already opened: {}'.format(self.name))
+            else:
+                logger.debug('Wallet.open: <!< indy error code {}'.format(self.e.error_code))
+                raise
 
         self._did = await self._seed2did()
         self._verkey = await did.key_for_did(self.pool.handle, self.handle, self.did)
